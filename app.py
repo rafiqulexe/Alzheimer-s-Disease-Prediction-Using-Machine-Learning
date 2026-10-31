@@ -18,6 +18,11 @@ from routes.reports import router as reports_router
 from routes.settings import router as settings_router
 from routes.admin import router as admin_router
 
+# Convenience re-exports for backwards-compatibility & unit tests
+from db import users_col, predictions_col, chats_col
+from core.security import verify_password, hash_password, create_token, get_current_user
+from core.config import is_admin_email
+
 # Initialize FastAPI Application
 app = FastAPI(
     title="Alzheimer's Disease Detection & Clinical Assistant",
