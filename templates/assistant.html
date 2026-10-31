@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Assistant • Alzheimer’s App</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="/static/styles.css" />
+  <style>
+    /* assistant-specific layout */
+    .assistant-shell{
+      max-width:1100px;
+      margin:0 auto;
+      background:#fff;
+      border-radius:16px;
+      border:1px solid var(--border);
+      box-shadow:0 18px 45px rgba(15,23,42,.12);
+      overflow:hidden;
+      height: calc(100vh - 56px - 36px); /* viewport - topbar - content paddings-ish */
+      min-height: 520px;
+      display:flex;
+      flex-direction:column;
+    }
+    .assistant-header{
+      padding:14px 18px;
+      border-bottom:1px solid rgba(15,23,42,.06);
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:center;
+      background:linear-gradient(90deg,var(--accent),#22c55e);
+      color:#f9fafb;
+      flex-shrink:0;
+    }
+    .assistant-header h1{margin:0;font-size:1.1rem}
+    .assistant-header p{margin:4px 0 0;font-size:.85rem;color:#e5f9ec;max-width:580px}
+    .assistant-main{
+      flex:1;
+      display:grid;
+      grid-template-columns:minmax(0,2.2fr) minmax(0,1fr);
+      min-height:0;
+      overflow:hidden;
+      background:#f1f5f9;
+    }
+    .chat-panel{border-right:1px solid var(--border);display:flex;flex-direction:column;min-width:0;min-height:0;background:#fff}
+    .chat-messages{flex:1;padding:14px 16px;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
+    .msg-row{display:flex}
+    .msg-row.user{justify-content:flex-end}
+    .msg-row.bot{justify-content:flex-start}
+    .msg-bubble{max-width:80%;padding:9px 11px;border-radius:14px;font-size:.9rem;line-height:1.35;white-space:pre-wrap}
+    .msg-bubble.user{background:var(--accent);color:#ecfdf5;border-bottom-right-radius:2px}
+    .msg-bubble.bot{background:#e5e7eb;color:var(--text);border-bottom-left-radius:2px;border:1px solid #cbd5e1}
+    .msg-meta{font-size:.7rem;color:var(--muted);margin-top:2px}
+    .chat-input{border-top:1px solid var(--border);padding:10px 12px;flex-shrink:0;background:#f8fafc}
+    .chat-form{display:flex;gap:8px}
+    .chat-form textarea{flex:1;resize:none;min-height:44px;max-height:140px;padding:8px 10px;border-radius:10px;border:1px solid #cbd5e1;background:#fff;color:var(--text);font-size:.9rem}
+    .chat-form textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px rgba(22,163,74,.25)}
+    .send-btn{padding:0 14px;border-radius:999px;border:none;background:var(--accent);color:#fff;font-weight:650;font-size:.9rem;cursor:pointer;white-space:nowrap}
+    .send-btn:hover{background:var(--accent-dark)}
+    .send-btn:disabled{opacity:.6;cursor:default}
+    .status-line{font-size:.78rem;color:var(--muted);margin-top:4px}
+    .side-panel{padding:14px 14px 16px;font-size:.85rem;color:var(--muted);display:flex;flex-direction:column;gap:10px;min-height:0;overflow-y:auto;background:#fff}
+    .side-panel h2{margin:0 0 6px;font-size:.95rem;color:var(--text)}
+    .pill-list{display:flex;flex-wrap:wrap;gap:6px}
+    .pill{padding:4px 8px;border-radius:999px;border:1px solid var(--border);background:#f9fafb;color:var(--text);font-size:.8rem;cursor:pointer}
+    .pill:hover{border-color:var(--accent);background:#ecfdf5}
+    .disclaimer{margin-top:auto;font-size:.75rem;color:var(--muted)}
+    .typing-dots{display:inline-block;width:1.8em;text-align:left}
+    .typing-dots span{display:inline-block;width:.3em;height:.3em;margin-right:.15em;border-radius:999px;background:#9ca3af;animation:typing-bounce 1s infinite ease-in-out}
+    .typing-dots span:nth-child(2){animation-delay:.15s}
+    .typing-dots span:nth-child(3){animation-delay:.3s}
+    @keyframes typing-bounce{0%,80%,100%{transform:translateY(0);opacity:.5}40%{transform:translateY(-2px);opacity:1}}
+    @media(max-width:880px){
+      .assistant-shell{height:auto;min-height:0}
+      .assistant-main{grid-template-columns:minmax(0,1fr)}
+      .chat-panel{border-right:none;border-bottom:1px solid var(--border)}
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-logo">A</div>
+      <a href="/dashboard" class="side-icon" title="Dashboard">🏠</a>
+      <a href="/patients" class="side-icon" title="Patients">👤</a>
+      <a href="/assistant" class="side-icon active" title="Assistant">💬</a>
+      <a href="/reports" class="side-icon" title="Reports">📊</a>
+      <a href="/settings" class="side-icon" title="Settings">⚙️</a>
+      <div class="sidebar-footer">v1.0</div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <div class="topbar-title">Alzheimer’s Disease Detection</div>
+        <div class="topbar-right">
+          <div class="user-pill">
+            {{ full_name or user_email or "User" }}
+            <a class="logout-link" href="/logout">Logout</a>
+          </div>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="assistant-shell">
+          <header class="assistant-header">
+            <div>
+              <h1>Alzheimer assistant</h1>
+              <p>Ask questions in clear language. This tool can’t diagnose; for medical decisions, talk to a professional.</p>
+            </div>
+          </header>
+
+          <div class="assistant-main">
+            <section class="chat-panel">
+              <div id="chat-messages" class="chat-messages">
+                <div class="msg-row bot">
+                  <div>
+                    <div class="msg-bubble bot">
+                      Hi {{ full_name or "there" }} 👋
+                      I can explain symptoms, tests, risk factors, caregiving tips, and summarize your uploaded PDF.
+                      Please don’t share very private details.
+                    </div>
+                    <div class="msg-meta">Assistant • just now</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="chat-input">
+                <form id="chat-form" class="chat-form">
+                  <textarea id="question-input" name="question" placeholder="Ask something… (Enter to send, Shift+Enter for new line)"></textarea>
+                  <button type="submit" class="send-btn">Send</button>
+                </form>
+                <div id="status" class="status-line"></div>
+              </div>
+            </section>
+
+            <aside class="side-panel">
+              <h2>Good questions</h2>
+              <div class="pill-list" id="suggestions">
+                <div class="pill" data-q="What are common early symptoms of Alzheimer’s disease?">Early symptoms</div>
+                <div class="pill" data-q="How is Alzheimer’s usually diagnosed by doctors?">How diagnosis works</div>
+                <div class="pill" data-q="What lifestyle changes may help support brain health for someone at risk?">Brain health tips</div>
+                <div class="pill" data-q="How can family members communicate with a loved one who has moderate Alzheimer’s?">Communication tips</div>
+                <div class="pill" data-q="What questions should I prepare before visiting a neurologist about memory problems?">Questions for a doctor</div>
+              </div>
+
+              <h2>What I can and cannot do</h2>
+              <ul style="margin:0 0 4px 18px;padding:0;">
+                <li>Explain Alzheimer’s, MCI, dementia, tests, and treatments.</li>
+                <li>Summarize information from your uploaded PDF.</li>
+                <li>Help you prepare questions for your doctor.</li>
+              </ul>
+
+              <p class="disclaimer">
+                I can’t give diagnoses or emergency advice. If someone is in danger or feels very unwell, contact local emergency services.
+              </p>
+            </aside>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+<script>
+  const form = document.getElementById("chat-form");
+  const input = document.getElementById("question-input");
+  const messagesEl = document.getElementById("chat-messages");
+  const statusEl = document.getElementById("status");
+  const suggestionsEl = document.getElementById("suggestions");
+  let typingRow = null;
+
+  function scrollToBottom(){ messagesEl.scrollTop = messagesEl.scrollHeight; }
+
+  function appendMessage(role, text){
+    const row=document.createElement("div");
+    row.className="msg-row "+(role==="user"?"user":"bot");
+    const wrapper=document.createElement("div");
+    const bubble=document.createElement("div");
+    bubble.className="msg-bubble "+(role==="user"?"user":"bot");
+    bubble.textContent=text;
+    const meta=document.createElement("div");
+    meta.className="msg-meta";
+    meta.textContent=(role==="user"?"You":"Assistant");
+    wrapper.appendChild(bubble); wrapper.appendChild(meta);
+    row.appendChild(wrapper); messagesEl.appendChild(row); scrollToBottom();
+  }
+
+  function showTyping(){
+    if(typingRow) return;
+    typingRow=document.createElement("div");
+    typingRow.className="msg-row bot";
+    const wrapper=document.createElement("div");
+    const bubble=document.createElement("div");
+    bubble.className="msg-bubble bot";
+    bubble.style.fontStyle="italic";
+    bubble.innerHTML='Assistant is typing <span class="typing-dots"><span></span><span></span><span></span></span>';
+    const meta=document.createElement("div");
+    meta.className="msg-meta"; meta.textContent="Assistant";
+    wrapper.appendChild(bubble); wrapper.appendChild(meta);
+    typingRow.appendChild(wrapper); messagesEl.appendChild(typingRow); scrollToBottom();
+  }
+  function hideTyping(){
+    if(typingRow && typingRow.parentNode) typingRow.parentNode.removeChild(typingRow);
+    typingRow=null;
+  }
+
+  function autoResize(){
+    input.style.height="auto";
+    const max=140;
+    input.style.height=Math.min(input.scrollHeight,max)+"px";
+  }
+  autoResize();
+  input.addEventListener("input", autoResize);
+
+  async function sendQuestion(question){
+    if(!question.trim()) return;
+    appendMessage("user", question);
+    input.value=""; autoResize();
+    statusEl.textContent="";
+    form.querySelector("button").disabled=true;
+    showTyping();
+
+    try{
+      const fd=new FormData(); fd.append("question", question);
+      const resp=await fetch("/chat",{method:"POST",body:fd});
+      hideTyping();
+      if(!resp.ok){
+        console.error(await resp.text());
+        appendMessage("bot","⚠️ Sorry, something went wrong on the server.");
+      }else{
+        const data=await resp.json();
+        appendMessage("bot", data.answer || "I’m not sure how to answer that.");
+      }
+    }catch(err){
+      console.error(err);
+      hideTyping();
+      appendMessage("bot","⚠️ Network error. Please try again.");
+    }finally{
+      form.querySelector("button").disabled=false;
+      input.focus();
+    }
+  }
+
+  form.addEventListener("submit", e=>{ e.preventDefault(); sendQuestion(input.value); });
+
+  input.addEventListener("keydown", e=>{
+    if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); sendQuestion(input.value); }
+  });
+
+  suggestionsEl?.addEventListener("click", e=>{
+    const pill=e.target.closest(".pill"); if(!pill) return;
+    const q=pill.getAttribute("data-q"); if(q) sendQuestion(q);
+  });
+</script>
+</body>
+</html>

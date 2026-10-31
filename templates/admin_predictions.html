@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Admin Predictions • Alzheimer’s App</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="/static/styles.css" />
+  <style>
+    .card-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+    .badge-ok{background:#dcfce7;color:#15803d}
+    .badge-risk{background:#fee2e2;color:#b91c1c}
+    .badge-neutral{background:#f3f4f6;color:#4b5563}
+    @media(max-width:600px){.search-input{width:100%}}
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-logo"><a href="/admin" style="color:#fff;text-decoration:none;">A</a></div>
+      <a href="/dashboard" class="side-icon" title="User dashboard">🏠</a>
+      <a href="/patients" class="side-icon" title="Patients">👤</a>
+      <a href="/assistant" class="side-icon" title="Assistant">💬</a>
+      <a href="/admin" class="side-icon active" title="Admin">🛠️</a>
+      <div class="sidebar-footer">v1.0</div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <div class="topbar-title">Admin Console • All Predictions</div>
+        <div class="topbar-right">
+          <div class="user-pill">
+            {{ full_name or user_email or "Admin" }}
+            <a class="logout-link" href="/logout">Logout</a>
+          </div>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="page-header">
+          <h1>Global Prediction Logs</h1>
+          <p class="page-subtitle">Detailed history of all clinical model predictions and test evaluations.</p>
+        </div>
+
+        <section class="card">
+          <div class="card-head">
+            <h2>Predictions Log ({{ predictions|length }})</h2>
+            <input id="admin-pred-search" class="search-input" type="text" placeholder="Search predictions, patients, users…" />
+          </div>
+
+          {% if predictions and predictions|length > 0 %}
+          <table id="predictions-table">
+            <thead>
+              <tr>
+                <th>Patient</th>
+                <th>Patient ID</th>
+                <th>MMSE</th>
+                <th>ADL</th>
+                <th>Memory</th>
+                <th>Behavior</th>
+                <th>Result</th>
+                <th>Tested By</th>
+                <th>Timestamp</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in predictions %}
+              <tr>
+                <td><strong>{{ p.patient_name }}</strong></td>
+                <td><code>{{ p.patient_id }}</code></td>
+                <td>{{ p.inputs.mmse if p.inputs else "-" }}</td>
+                <td>{{ p.inputs.adl if p.inputs else "-" }}</td>
+                <td>{{ "Yes" if p.inputs and p.inputs.memory_complaints == 1 else ("No" if p.inputs else "-") }}</td>
+                <td>{{ "Yes" if p.inputs and p.inputs.behavioral_problems == 1 else ("No" if p.inputs else "-") }}</td>
+                <td>
+                  {% if not p.label or p.label == "No prediction yet" %}
+                    <span class="badge badge-neutral">{{ p.label or "None" }}</span>
+                  {% elif "No Alzheimer" in p.label %}
+                    <span class="badge badge-ok">{{ p.label }}</span>
+                  {% else %}
+                    <span class="badge badge-risk">{{ p.label }}</span>
+                  {% endif %}
+                </td>
+                <td>{{ p.user_email }}</td>
+                <td>{{ p.created_at.strftime("%Y-%m-%d %H:%M") if p.created_at else "-" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <p class="muted" style="margin:12px 0;">No predictions logged in the database yet.</p>
+          {% endif %}
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const search = document.getElementById("admin-pred-search");
+    if (search) {
+      search.addEventListener("input", function() {
+        const q = this.value.trim().toLowerCase();
+        const rows = document.querySelectorAll("#predictions-table tbody tr");
+        rows.forEach(r => {
+          const txt = r.innerText.toLowerCase();
+          r.style.display = (!q || txt.includes(q)) ? "" : "none";
+        });
+      });
+    }
+  </script>
+</body>
+</html>

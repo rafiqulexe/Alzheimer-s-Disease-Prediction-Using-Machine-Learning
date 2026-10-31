@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Admin Patients • Alzheimer’s App</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="/static/styles.css" />
+  <style>
+    .card-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+    .badge-ok{background:#dcfce7;color:#15803d}
+    .badge-risk{background:#fee2e2;color:#b91c1c}
+    .badge-neutral{background:#f3f4f6;color:#4b5563}
+    @media(max-width:600px){.search-input{width:100%}}
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-logo"><a href="/admin" style="color:#fff;text-decoration:none;">A</a></div>
+      <a href="/dashboard" class="side-icon" title="User dashboard">🏠</a>
+      <a href="/patients" class="side-icon" title="Patients">👤</a>
+      <a href="/assistant" class="side-icon" title="Assistant">💬</a>
+      <a href="/admin" class="side-icon active" title="Admin">🛠️</a>
+      <div class="sidebar-footer">v1.0</div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <div class="topbar-title">Admin Console • All Patients</div>
+        <div class="topbar-right">
+          <div class="user-pill">
+            {{ full_name or user_email or "Admin" }}
+            <a class="logout-link" href="/logout">Logout</a>
+          </div>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="page-header">
+          <h1>Global Patient Registry</h1>
+          <p class="page-subtitle">View all registered patient records across every user account.</p>
+        </div>
+
+        <section class="card">
+          <div class="card-head">
+            <h2>Patients ({{ patients|length }})</h2>
+            <input id="admin-patient-search" class="search-input" type="text" placeholder="Search by name, ID, user email…" />
+          </div>
+
+          {% if patients and patients|length > 0 %}
+          <table id="patients-table">
+            <thead>
+              <tr>
+                <th>Patient Name</th>
+                <th>Patient ID</th>
+                <th>Age</th>
+                <th>Gender</th>
+                <th>Phone</th>
+                <th>Owner (User)</th>
+                <th>Latest Status</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in patients %}
+              <tr>
+                <td><strong>{{ p.name }}</strong></td>
+                <td><code>{{ p.patient_id }}</code></td>
+                <td>{{ p.age if p.age is not none else "-" }}</td>
+                <td>{{ p.gender }}</td>
+                <td>{{ p.phone or "-" }}</td>
+                <td>{{ p.user_email }}</td>
+                <td>
+                  {% if not p.last_label or p.last_label == "No prediction yet" %}
+                    <span class="badge badge-neutral">{{ p.last_label or "No prediction" }}</span>
+                  {% elif "No Alzheimer" in p.last_label %}
+                    <span class="badge badge-ok">{{ p.last_label }}</span>
+                  {% else %}
+                    <span class="badge badge-risk">{{ p.last_label }}</span>
+                  {% endif %}
+                </td>
+                <td>{{ p.created_at.strftime("%Y-%m-%d %H:%M") if p.created_at else "-" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <p class="muted" style="margin:12px 0;">No patient records found in the database.</p>
+          {% endif %}
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const search = document.getElementById("admin-patient-search");
+    if (search) {
+      search.addEventListener("input", function() {
+        const q = this.value.trim().toLowerCase();
+        const rows = document.querySelectorAll("#patients-table tbody tr");
+        rows.forEach(r => {
+          const txt = r.innerText.toLowerCase();
+          r.style.display = (!q || txt.includes(q)) ? "" : "none";
+        });
+      });
+    }
+  </script>
+</body>
+</html>

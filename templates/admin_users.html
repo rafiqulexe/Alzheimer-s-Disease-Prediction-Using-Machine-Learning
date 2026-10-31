@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Admin users • Alzheimer’s App</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="/static/styles.css" />
+  <style>
+    .toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+    .badge-role{display:inline-block;padding:2px 8px;border-radius:999px;font-size:.72rem;font-weight:650}
+    .badge-role.admin{background:#dcfce7;color:#15803d}
+    .badge-role.user{background:#e5f3ff;color:#1d4ed8}
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-logo"><a href="/admin" style="color:#fff;text-decoration:none;">A</a></div>
+      <a href="/dashboard" class="side-icon" title="User dashboard">🏠</a>
+      <a href="/patients" class="side-icon" title="Patients">👤</a>
+      <a href="/assistant" class="side-icon" title="Assistant">💬</a>
+      <a href="/admin" class="side-icon active" title="Admin">🛠️</a>
+      <div class="sidebar-footer">v1.0</div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <div class="topbar-title">Admin console</div>
+        <div class="topbar-right">
+          <div class="user-pill">
+            {{ full_name or user_email or "Admin" }}
+            <a class="logout-link" href="/logout">Logout</a>
+          </div>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="page-header">
+          <h1>Users</h1>
+          <p class="page-subtitle">Manage accounts and roles.</p>
+        </div>
+
+        <section class="card">
+          <div class="toolbar">
+            <h2>All users</h2>
+            <input id="userSearchInput" class="search-input" type="text" placeholder="Search by name or email…" />
+          </div>
+
+          {% if users and users|length > 0 %}
+          <table id="userTable">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Patients</th>
+                <th>Predictions</th>
+                <th>Last active</th>
+                <th style="text-align:right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for u in users %}
+              <tr>
+                <td>{{ u.full_name or "Unnamed" }}</td>
+                <td>{{ u.email }}</td>
+                <td><span class="badge-role {{ u.role }}">{{ u.role|capitalize }}</span></td>
+                <td>{{ u.patients_count or 0 }}</td>
+                <td>{{ u.predictions_count or 0 }}</td>
+                <td>{% if u.last_activity %}{{ u.last_activity.strftime("%Y-%m-%d %H:%M") }}{% else %}-{% endif %}</td>
+                <td style="text-align:right;white-space:nowrap;">
+                  <a class="pill-link" href="/admin/users/{{ u.id }}">Details</a>
+                  <form method="post" action="/admin/users/{{ u.id }}/toggle-role" style="display:inline;">
+                    <button type="submit" class="btn-link">
+                      {% if u.role == "admin" %}Make user{% else %}Make admin{% endif %}
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <p class="muted" style="margin:6px 0 0">No users found.</p>
+          {% endif %}
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const input=document.getElementById("userSearchInput");
+    const table=document.getElementById("userTable");
+    input?.addEventListener("input",()=>{
+      const q=input.value.trim().toLowerCase();
+      const rows=document.querySelectorAll("#userTable tbody tr");
+      rows.forEach(r=>{
+        const name=(r.children[0]?.innerText||"").toLowerCase();
+        const email=(r.children[1]?.innerText||"").toLowerCase();
+        r.style.display=(!q || name.includes(q) || email.includes(q)) ? "" : "none";
+      });
+    });
+  </script>
+</body>
+</html>

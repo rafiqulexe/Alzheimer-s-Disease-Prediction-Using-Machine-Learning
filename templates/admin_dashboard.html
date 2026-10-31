@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Admin • Alzheimer’s App</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="/static/styles.css" />
+  <style>
+    :root{--accent:#16a34a;--accent-dark:#15803d}
+    .tiles-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:18px}
+    .tile{background:var(--panel);border-radius:10px;border:1px solid var(--border);padding:12px;box-shadow:var(--shadow);text-decoration:none;color:inherit}
+    .tile-label{font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+    .tile-value{font-size:1.45rem;font-weight:750}
+    .tile-note{margin-top:4px;font-size:.78rem;color:var(--muted)}
+    .panels-row{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:14px;align-items:flex-start}
+    .panel{background:var(--panel);border-radius:10px;border:1px solid var(--border);padding:12px;box-shadow:var(--shadow);display:flex;flex-direction:column}
+    .panel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+    .panel-title{font-size:.95rem;font-weight:650}
+    .panel-sub{font-size:.78rem;color:var(--muted)}
+    .panel-body{background:#f9fafb;border-radius:10px;border:1px solid var(--border);position:relative;overflow:hidden}
+    .panel-body-pie{height:260px;display:flex;align-items:center;justify-content:center}
+    .panel-body-pie canvas{width:100%;max-width:380px;height:auto!important}
+    .panel-body-line{height:260px}
+    .panel-body-line canvas{position:absolute;inset:0;width:100%!important;height:100%!important}
+    .table-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+    .user-search{max-width:260px;width:100%}
+    .user-search input{width:100%;padding:7px 10px;border-radius:999px;border:1px solid var(--border);font-size:.84rem}
+    .badge-role{display:inline-block;padding:2px 8px;border-radius:999px;font-size:.72rem;font-weight:650}
+    .badge-role.admin{background:#dcfce7;color:#15803d}
+    .badge-role.user{background:#e5f3ff;color:#1d4ed8}
+    @media(max-width:1024px){.panels-row{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-logo"><a href="/admin" style="color:#fff;text-decoration:none;">A</a></div>
+      <a href="/dashboard" class="side-icon" title="User dashboard">🏠</a>
+      <a href="/patients" class="side-icon" title="Patients">👤</a>
+      <a href="/assistant" class="side-icon" title="Assistant">💬</a>
+      <a href="/admin" class="side-icon active" title="Admin">🛠️</a>
+      <div class="sidebar-footer">v1.0</div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <div class="topbar-title">Admin console • Alzheimer’s Disease Detection</div>
+        <div class="topbar-right">
+          <div class="user-pill">
+            {{ full_name or user_email or "Admin" }}
+            <a class="logout-link" href="/logout">Logout</a>
+          </div>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="page-header">
+          <h1>Admin dashboard</h1>
+          <p class="page-subtitle">Global overview across all users, patients, and predictions.</p>
+        </div>
+
+        <section class="tiles-row">
+          <a class="tile" href="/admin/users">
+            <div class="tile-label">Total users</div>
+            <div class="tile-value">{{ total_users or 0 }}</div>
+            <div class="tile-note">Registered accounts.</div>
+          </a>
+          <a class="tile" href="/admin/patients">
+            <div class="tile-label">Total patients</div>
+            <div class="tile-value">{{ total_patients or 0 }}</div>
+            <div class="tile-note">Unique patient records.</div>
+          </a>
+          <a class="tile" href="/admin/predictions">
+            <div class="tile-label">Total predictions</div>
+            <div class="tile-value">{{ total_predictions or 0 }}</div>
+            <div class="tile-note">All model runs stored.</div>
+          </a>
+          <article class="tile">
+            <div class="tile-label">Predictions today</div>
+            <div class="tile-value">{{ today_predictions or 0 }}</div>
+            <div class="tile-note">Since midnight (UTC).</div>
+          </article>
+        </section>
+
+        <section class="panels-row">
+          <article class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Global prediction distribution</div>
+                <div class="panel-sub">Latest status per patient (all users)</div>
+              </div>
+            </div>
+            <div class="panel-body panel-body-pie">
+              <canvas id="adminPieChart"></canvas>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Predictions over time</div>
+                <div class="panel-sub">Last 30 days, all users</div>
+              </div>
+            </div>
+            <div class="panel-body panel-body-line">
+              <canvas id="adminTrendChart"></canvas>
+            </div>
+          </article>
+        </section>
+
+        <section class="panel" style="margin-top:16px;">
+          <div class="table-head">
+            <h2 style="margin:0;font-size:1rem;">Users</h2>
+            <div class="user-search">
+              <input type="text" id="userSearchInput" placeholder="Search by name or email…" oninput="filterUserTable()" />
+            </div>
+          </div>
+
+          {% if users and users|length > 0 %}
+          <table id="userTable">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Patients</th>
+                <th>Predictions</th>
+                <th>Last active</th>
+                <th style="text-align:right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for u in users %}
+              <tr>
+                <td>{{ u.full_name or "Unnamed" }}</td>
+                <td>{{ u.email }}</td>
+                <td><span class="badge-role {{ u.role }}">{{ u.role|capitalize }}</span></td>
+                <td>{{ u.patients_count or 0 }}</td>
+                <td>{{ u.predictions_count or 0 }}</td>
+                <td>{% if u.last_activity %}{{ u.last_activity.strftime("%Y-%m-%d %H:%M") }}{% else %}-{% endif %}</td>
+                <td style="text-align:right;white-space:nowrap;">
+                  <a class="pill-link" href="/admin/users/{{ u.id }}">Details</a>
+                  <form method="post" action="/admin/users/{{ u.id }}/toggle-role" style="display:inline;">
+                    <button type="submit" class="btn-link">
+                      {% if u.role == "admin" %}Make user{% else %}Make admin{% endif %}
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <p class="muted" style="margin:6px 0 0">No users found.</p>
+          {% endif %}
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    async function initAdminCharts() {
+      const pieCanvas  = document.getElementById("adminPieChart");
+      const lineCanvas = document.getElementById("adminTrendChart");
+      if (!pieCanvas || !lineCanvas) return;
+
+      const pieCtx  = pieCanvas.getContext("2d");
+      const lineCtx = lineCanvas.getContext("2d");
+
+      let data;
+      try {
+        const resp = await fetch("/api/admin-charts");
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+        data = await resp.json();
+      } catch (err) {
+        console.error("Error fetching admin chart data, using dummy:", err);
+        data = {
+          label_counts: [
+            { label: "Alzheimer's Detected", count: 3 },
+            { label: "No Alzheimer's", count: 5 },
+            { label: "No prediction yet", count: 2 },
+          ],
+          trend: { dates:["Day 1","Day 2","Day 3"], alzheimers:[1,0,2], no_alzheimers:[0,2,1] },
+        };
+      }
+
+      const labels = data.label_counts.map(d => d.label);
+      const counts = data.label_counts.map(d => d.count);
+      const hasPie = counts.some(c => c > 0);
+
+      const colorByLabel = {
+        "Alzheimer's Detected": "#ef4444",
+        "No Alzheimer's": "#3b82f6",
+        "No prediction yet": "#f59e0b",
+      };
+
+      new Chart(pieCtx, {
+        type: "pie",
+        data: {
+          labels: hasPie ? labels : ["No data yet"],
+          datasets: [{
+            data: hasPie ? counts : [1],
+            backgroundColor: (hasPie ? labels : ["No data yet"]).map(l => colorByLabel[l] || "#9ca3af"),
+            borderColor:"#fff",
+            borderWidth:2
+          }],
+        },
+        options: { responsive:true, maintainAspectRatio:true, plugins:{ legend:{ position:"bottom" } } },
+      });
+
+      const t = data.trend || { dates: [], alzheimers: [], no_alzheimers: [] };
+      const lineLabels = t.dates?.length ? t.dates : ["Day 1","Day 2","Day 3"];
+      const alzSeries   = t.alzheimers?.length ? t.alzheimers : [0,1,0];
+      const noAlzSeries = t.no_alzheimers?.length ? t.no_alzheimers : [1,0,2];
+
+      new Chart(lineCtx, {
+        type: "line",
+        data: {
+          labels: lineLabels,
+          datasets: [
+            { label:"Alzheimer's Detected", data:alzSeries, tension:.3, borderColor:"#ef4444", backgroundColor:"rgba(239,68,68,.25)", pointBackgroundColor:"#ef4444" },
+            { label:"No Alzheimer's", data:noAlzSeries, tension:.3, borderColor:"#3b82f6", backgroundColor:"rgba(59,130,246,.25)", pointBackgroundColor:"#3b82f6" },
+          ],
+        },
+        options: { responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } } },
+      });
+    }
+
+    function filterUserTable() {
+      const input  = document.getElementById("userSearchInput");
+      const filter = (input?.value || "").toLowerCase();
+      const table  = document.getElementById("userTable");
+      if (!table) return;
+
+      const rows = table.getElementsByTagName("tr");
+      for (let i = 1; i < rows.length; i++) {
+        const cells = rows[i].getElementsByTagName("td");
+        if (!cells.length) continue;
+        const name  = (cells[0].textContent || "").toLowerCase();
+        const email = (cells[1].textContent || "").toLowerCase();
+        rows[i].style.display = (name.includes(filter) || email.includes(filter)) ? "" : "none";
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", initAdminCharts);
+  </script>
+</body>
+</html>

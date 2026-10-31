@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Settings • Alzheimer’s App</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="/static/styles.css" />
+  <style>
+    .two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+    @media(max-width:760px){.two{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-logo">A</div>
+      <a href="/dashboard" class="side-icon" title="Dashboard">🏠</a>
+      <a href="/patients" class="side-icon" title="Patients">👤</a>
+      <a href="/reports" class="side-icon" title="Reports">📊</a>
+      <a href="/settings" class="side-icon active" title="Settings">⚙️</a>
+      <div class="sidebar-footer">v1.0</div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <div class="topbar-title">Alzheimer’s Disease Detection</div>
+        <div class="topbar-right">
+          <div class="user-pill">
+            {{ full_name or user_email or "User" }}
+            <a class="logout-link" href="/logout">Logout</a>
+          </div>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="page-header">
+          <h1>Settings</h1>
+          <p class="page-subtitle">Update your profile and password.</p>
+        </div>
+
+        <div class="two">
+          <section class="card">
+            <h2 style="margin-bottom:8px;">Profile</h2>
+            <form method="post" action="/settings/profile">
+              <div class="form-grid" style="grid-template-columns:1fr;">
+                <div>
+                  <label class="muted" for="full_name">Full name</label>
+                  <input id="full_name" class="input" name="full_name" type="text" value="{{ full_name or '' }}" />
+                </div>
+                <div>
+                  <label class="muted" for="phone">Phone</label>
+                  <input id="phone" class="input" name="phone" type="tel" value="{{ phone or '' }}" />
+                </div>
+              </div>
+              <div style="margin-top:12px;display:flex;justify-content:flex-end;">
+                <button class="btn btn-primary" type="submit">Save profile</button>
+              </div>
+            </form>
+          </section>
+
+          <section class="card">
+            <h2 style="margin-bottom:8px;">Password</h2>
+            <form method="post" action="/settings/password">
+              <div class="form-grid" style="grid-template-columns:1fr;">
+                <div>
+                  <label class="muted" for="current_password">Current password</label>
+                  <input id="current_password" class="input" name="current_password" type="password" required />
+                </div>
+                <div>
+                  <label class="muted" for="new_password">New password</label>
+                  <input id="new_password" class="input" name="new_password" type="password" required minlength="8" />
+                </div>
+              </div>
+              <div style="margin-top:12px;display:flex;justify-content:flex-end;">
+                <button class="btn btn-primary" type="submit">Update password</button>
+              </div>
+            </form>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

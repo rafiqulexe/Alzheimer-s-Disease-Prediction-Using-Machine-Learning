@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Reports • Alzheimer’s App</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="/static/styles.css" />
+  <style>
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+    .kpi{display:flex;flex-direction:column;gap:4px}
+    .kpi .label{font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+    .kpi .value{font-size:1.4rem;font-weight:750}
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-logo">A</div>
+      <a href="/dashboard" class="side-icon" title="Dashboard">🏠</a>
+      <a href="/patients" class="side-icon" title="Patients">👤</a>
+      <a href="/reports" class="side-icon active" title="Reports">📊</a>
+      <a href="/settings" class="side-icon" title="Settings">⚙️</a>
+      <div class="sidebar-footer">v1.0</div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <div class="topbar-title">Alzheimer’s Disease Detection</div>
+        <div class="topbar-right">
+          <div class="user-pill">
+            {{ full_name or user_email or "User" }}
+            <a class="logout-link" href="/logout">Logout</a>
+          </div>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="page-header">
+          <h1>Reports</h1>
+          <p class="page-subtitle">Downloadable summaries and analytics (placeholder UI).</p>
+        </div>
+
+        <section class="grid">
+          <div class="card kpi">
+            <div class="label">Total predictions</div>
+            <div class="value">{{ predictions_count or 0 }}</div>
+            <div class="muted">Across your account.</div>
+          </div>
+
+          <div class="card kpi">
+            <div class="label">Patients</div>
+            <div class="value">{{ patients_count or 0 }}</div>
+            <div class="muted">Unique patient records.</div>
+          </div>
+
+          <div class="card">
+            <h2 style="margin-bottom:6px;">Export</h2>
+            <p class="muted" style="margin:0 0 10px;">Choose a report to download. Hook these buttons to backend routes later.</p>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <a class="btn btn-primary" href="/reports/predictions.csv">Predictions CSV</a>
+              <a class="btn btn-ghost" href="/reports/patients.csv">Patients CSV</a>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

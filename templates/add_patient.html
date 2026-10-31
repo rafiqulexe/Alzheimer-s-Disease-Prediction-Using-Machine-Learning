@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Add Patient • Alzheimer’s App</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-logo">A</div>
+      <a href="/dashboard" class="side-icon" title="Dashboard">🏠</a>
+      <a href="/patients" class="side-icon active" title="Patients">👤</a>
+      <a href="/reports" class="side-icon" title="Reports">📊</a>
+      <a href="/settings" class="side-icon" title="Settings">⚙️</a>
+      <div class="sidebar-footer">v1.0</div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <div class="topbar-title">Alzheimer’s Disease Detection</div>
+        <div class="topbar-right">
+          <div class="user-pill">
+            {{ full_name or user_email or "User" }}
+            <a class="logout-link" href="/logout">Logout</a>
+          </div>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="page-header">
+          <h1>Add new patient</h1>
+          <p class="page-subtitle">Register a patient profile directly before running clinical tests.</p>
+        </div>
+
+        <section class="card" style="max-width:800px;">
+          <form id="add-patient-form">
+            <div class="form-grid">
+              <div>
+                <label class="muted" for="patient_name">Full name</label>
+                <input id="patient_name" class="input" name="patient_name" type="text" placeholder="e.g. John Doe" required />
+              </div>
+              <div>
+                <label class="muted" for="birthdate">Date of birth</label>
+                <input id="birthdate" class="input" name="birthdate" type="date" required />
+              </div>
+              <div>
+                <label class="muted" for="gender">Gender</label>
+                <select id="gender" name="gender" required>
+                  <option value="">Select…</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other / Prefer not to say</option>
+                </select>
+              </div>
+              <div>
+                <label class="muted" for="phone">Contact number</label>
+                <input id="phone" class="input" name="phone" type="tel" placeholder="+1234567890" required />
+              </div>
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;flex-wrap:wrap;">
+              <a class="btn btn-ghost" href="/patients">Cancel</a>
+              <button class="btn btn-primary" type="submit">Save patient</button>
+            </div>
+            <div id="status-msg" style="margin-top:10px;font-size:0.88rem;"></div>
+          </form>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById("add-patient-form");
+    const statusMsg = document.getElementById("status-msg");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      statusMsg.textContent = "Saving patient...";
+      statusMsg.style.color = "var(--muted)";
+
+      const body = new URLSearchParams(new FormData(form));
+
+      try {
+        const resp = await fetch("/patients/manual", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body
+        });
+        const data = await resp.json();
+        if (data.ok) {
+          window.location.href = "/patients";
+        } else {
+          statusMsg.textContent = "❌ " + (data.error || "Unable to add patient.");
+          statusMsg.style.color = "#b91c1c";
+        }
+      } catch (err) {
+        console.error(err);
+        statusMsg.textContent = "❌ Network error. Please try again.";
+        statusMsg.style.color = "#b91c1c";
+      }
+    });
+  </script>
+</body>
+</html>

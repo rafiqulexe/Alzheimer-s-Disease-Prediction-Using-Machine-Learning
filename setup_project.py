@@ -1,32 +1,42 @@
 import os
+from pathlib import Path
 
-# Define your folder and file structure
-project_structure = {
-    "__pycache__/",
-    ".venv/",
-    "chrome_langchain_db/",
-    "model/",
-    "templates/",
+# Define folders and files required by the project
+DIRECTORIES = [
+    "data",
+    "model",
+    "faiss_index",
+    "templates",
+    "static",
+]
+
+FILES = [
     "app.py",
     "main.py",
+    "db.py",
+    "vector.py",
+    "train_model.py",
     "requirements.txt",
-    "vector.py"
-}
+    ".env.example",
+]
 
-# Function to create folders and files
-def create_project_structure(structure):
-    for folder, contents in structure.items():
-        os.makedirs(folder, exist_ok=True)
-        for item in contents:
-            path = os.path.join(folder, item)
-            if item.endswith("/"):  # Create subfolder
-                os.makedirs(path, exist_ok=True)
-                print(f"Created folder: {path}")
-            else:  # Create empty file
-                open(path, 'a').close()
-                print(f"Created file: {path}")
+def create_project_structure():
+    """Ensure all required project directories and placeholder files exist."""
+    base_dir = Path(__file__).resolve().parent
 
-# Run the setup
+    for folder in DIRECTORIES:
+        folder_path = base_dir / folder
+        folder_path.mkdir(parents=True, exist_ok=True)
+        print(f"Verified directory: {folder}")
+
+    for file_name in FILES:
+        file_path = base_dir / file_name
+        if not file_path.exists():
+            file_path.touch()
+            print(f"Created file: {file_name}")
+        else:
+            print(f"Verified file: {file_name}")
+
 if __name__ == "__main__":
-    create_project_structure(project_structure)
-    print("\nProject structure created successfully!")
+    create_project_structure()
+    print("\nProject structure verified successfully!")

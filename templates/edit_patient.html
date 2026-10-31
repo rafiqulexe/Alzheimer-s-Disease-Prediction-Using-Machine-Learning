@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Edit patient • Alzheimer’s App</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-logo">A</div>
+      <a href="/dashboard" class="side-icon" title="Dashboard">🏠</a>
+      <a href="/patients" class="side-icon active" title="Patients">👤</a>
+      <a href="/reports" class="side-icon" title="Reports">📊</a>
+      <a href="/settings" class="side-icon" title="Settings">⚙️</a>
+      <div class="sidebar-footer">v1.0</div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <div class="topbar-title">Alzheimer’s Disease Detection</div>
+        <div class="topbar-right">
+          <div class="user-pill">
+            {{ full_name or user_email or "User" }}
+            <a class="logout-link" href="/logout">Logout</a>
+          </div>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="page-header">
+          <h1>Edit patient</h1>
+          <p class="page-subtitle">Update demographics and contact information.</p>
+        </div>
+
+        <section class="card" style="max-width:900px;">
+          <form method="post" action="/patients/{{ patient.patient_id }}/edit">
+            <div class="form-grid">
+              <div>
+                <label class="muted" for="name">Full name</label>
+                <input id="name" class="input" name="name" type="text" value="{{ patient.name }}" required />
+              </div>
+              <div>
+                <label class="muted" for="patient_id">Patient ID</label>
+                <input id="patient_id" class="input" value="{{ patient.patient_id }}" disabled />
+              </div>
+              <div>
+                <label class="muted" for="age">Age</label>
+                <input id="age" class="input" name="age" type="number" min="0" max="120" value="{{ patient.age if patient.age is not none else '' }}" />
+              </div>
+              <div>
+                <label class="muted" for="gender">Gender</label>
+                <select id="gender" name="gender" required>
+                  {% set g = patient.gender or "" %}
+                  <option value="" {% if not g %}selected{% endif %}>Select…</option>
+                  <option value="Male" {% if g=="Male" %}selected{% endif %}>Male</option>
+                  <option value="Female" {% if g=="Female" %}selected{% endif %}>Female</option>
+                  <option value="Other" {% if g=="Other" %}selected{% endif %}>Other / Prefer not to say</option>
+                </select>
+              </div>
+              <div class="full-span">
+                <label class="muted" for="phone">Contact number</label>
+                <input id="phone" class="input" name="phone" type="tel" value="{{ patient.phone or '' }}" />
+              </div>
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:14px;flex-wrap:wrap;">
+              <a class="btn btn-ghost" href="/patients">Cancel</a>
+              <button class="btn btn-primary" type="submit">Save changes</button>
+            </div>
+          </form>
+        </section>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

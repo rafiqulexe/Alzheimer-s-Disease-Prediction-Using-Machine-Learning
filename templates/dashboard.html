@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Dashboard • Alzheimer’s App</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="/static/styles.css" />
+  <style>
+    .tiles-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-bottom:16px}
+    .tile{background:var(--panel);border-radius:10px;border:1px solid var(--border);padding:12px;display:flex;flex-direction:column;gap:6px;box-shadow:var(--shadow);text-decoration:none;color:inherit;transition:transform .08s ease-out,box-shadow .08s ease-out,border-color .08s ease-out}
+    .tile:hover{transform:translateY(-1px);box-shadow:0 12px 28px rgba(15,23,42,.09);border-color:var(--accent)}
+    .tile-title{font-size:.95rem;font-weight:650}
+    .tile-body{font-size:.82rem;color:var(--muted);margin:0}
+    .tile-badge{margin-top:6px;padding:2px 8px;border-radius:999px;font-size:.74rem;background:#ecfdf5;color:var(--accent-dark);font-weight:600;display:inline-block;width:max-content}
+    .panels-row{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:12px;align-items:stretch}
+    .panel{background:var(--panel);border-radius:10px;border:1px solid var(--border);padding:12px;box-shadow:var(--shadow);display:flex;flex-direction:column}
+    .panel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+    .panel-title{font-size:.95rem;font-weight:650}
+    .panel-sub{font-size:.78rem;color:var(--muted)}
+    .panel-body{background:#f9fafb;border-radius:10px;border:1px solid var(--border);position:relative;overflow:hidden}
+    .panel-body-pie{height:260px;display:flex;align-items:center;justify-content:center}
+    .panel-body-pie canvas{width:100%;max-width:360px;height:auto!important}
+    .panel-body-line{height:260px}
+    .panel-body-line canvas{position:absolute;inset:0;width:100%!important;height:100%!important}
+    @media(max-width:640px){.panels-row{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-logo">A</div>
+      <a href="/dashboard" class="side-icon active" title="Dashboard">🏠</a>
+      <a href="/patients" class="side-icon" title="Patients">👤</a>
+      <a href="/reports" class="side-icon" title="Reports">📊</a>
+      <a href="/settings" class="side-icon" title="Settings">⚙️</a>
+      <div class="sidebar-footer">v1.0</div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <div class="topbar-title">Alzheimer’s Disease Detection</div>
+        <div class="topbar-right">
+          <div class="user-pill">
+            {{ full_name or user_email or "User" }}
+            <a class="logout-link" href="/logout">Logout</a>
+          </div>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="page-header">
+          <h1>Alzheimer patient monitoring dashboard</h1>
+          <p class="page-subtitle">
+            Hi {{ full_name or user_email or "there" }}. Quickly access tools and see your recent activity.
+          </p>
+        </div>
+
+        <section class="tiles-row">
+          <a href="/prediction" class="tile">
+            <div class="tile-title">Prediction form</div>
+            <p class="tile-body">Fill in clinical information and run the Alzheimer’s prediction model.</p>
+            <span class="tile-badge">Predictions: {{ predictions_count or 0 }}</span>
+          </a>
+
+          <a href="/patients" class="tile">
+            <div class="tile-title">Patients</div>
+            <p class="tile-body">See your saved patients, filter, edit or delete records.</p>
+            <span class="tile-badge">Patients: {{ patients_count or 0 }}</span>
+          </a>
+
+          <a href="/assistant" class="tile">
+            <div class="tile-title">Alzheimer assistant</div>
+            <p class="tile-body">Ask questions. Uses your PDF knowledge base plus general information.</p>
+          </a>
+
+          {% if user_role == "admin" or role == "admin" %}
+          <a href="/admin" class="tile">
+            <div class="tile-title">Admin dashboard</div>
+            <p class="tile-body">Manage users and view global prediction statistics.</p>
+          </a>
+          {% endif %}
+        </section>
+
+        <section class="panels-row">
+          <article class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Prediction distribution</div>
+                <div class="panel-sub">Alzheimer's vs No Alzheimer's</div>
+              </div>
+            </div>
+            <div class="panel-body panel-body-pie">
+              <canvas id="sleepChart"></canvas>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Predictions over time</div>
+                <div class="panel-sub">Last 14 days</div>
+              </div>
+            </div>
+            <div class="panel-body panel-body-line">
+              <canvas id="trendChart"></canvas>
+            </div>
+          </article>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    async function initDashboardCharts() {
+      const pieCanvas = document.getElementById("sleepChart");
+      const lineCanvas = document.getElementById("trendChart");
+      if (!pieCanvas || !lineCanvas) return;
+
+      const pieCtx = pieCanvas.getContext("2d");
+      const lineCtx = lineCanvas.getContext("2d");
+
+      let data;
+      try {
+        const resp = await fetch("/api/dashboard-charts");
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+        data = await resp.json();
+      } catch (err) {
+        console.error("Chart data fetch failed, using dummy:", err);
+        data = {
+          label_counts: [
+            { label: "Alzheimer's Detected", count: 3 },
+            { label: "No Alzheimer's", count: 5 },
+            { label: "No prediction yet", count: 2 },
+          ],
+          trend: {
+            dates: ["Day 1","Day 2","Day 3","Day 4","Day 5"],
+            alzheimers: [1,0,1,0,1],
+            no_alzheimers: [0,1,0,2,2],
+          },
+        };
+      }
+
+      const buckets = {"Alzheimer's Detected":0,"No Alzheimer's":0,"No prediction yet":0};
+      (data.label_counts||[]).forEach(i=>{ if (buckets[i.label]!==undefined) buckets[i.label]=i.count; });
+
+      new Chart(pieCtx, {
+        type: "pie",
+        data: {
+          labels: ["Alzheimer's Detected","No Alzheimer's","No prediction yet"],
+          datasets: [{
+            data: [buckets["Alzheimer's Detected"],buckets["No Alzheimer's"],buckets["No prediction yet"]],
+            backgroundColor: ["#ef4444","#3b82f6","#f59e0b"],
+            borderColor: "#ffffff",
+            borderWidth: 2
+          }]
+        },
+        options: { responsive:true, maintainAspectRatio:true, plugins:{ legend:{ position:"bottom" } } }
+      });
+
+      const t = data.trend || { dates: [], alzheimers: [], no_alzheimers: [] };
+      const lineLabels = t.dates?.length ? t.dates : ["Day 1","Day 2","Day 3"];
+      const alzSeries = t.alzheimers?.length ? t.alzheimers : [0,1,0];
+      const noAlzSeries = t.no_alzheimers?.length ? t.no_alzheimers : [1,0,2];
+
+      new Chart(lineCtx, {
+        type: "line",
+        data: {
+          labels: lineLabels,
+          datasets: [
+            { label:"Alzheimer's Detected", data:alzSeries, tension:.3, borderColor:"#ef4444", backgroundColor:"rgba(239,68,68,.25)", pointBackgroundColor:"#ef4444" },
+            { label:"No Alzheimer's", data:noAlzSeries, tension:.3, borderColor:"#3b82f6", backgroundColor:"rgba(59,130,246,.25)", pointBackgroundColor:"#3b82f6" }
+          ]
+        },
+        options: { responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } } }
+      });
+    }
+    document.addEventListener("DOMContentLoaded", initDashboardCharts);
+  </script>
+</body>
+</html>
